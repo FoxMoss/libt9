@@ -34,6 +34,7 @@ struct TrieNode {
 struct TrieNode *trie_create_word(struct Word word);
 struct TrieNode *trie_create_char(char c);
 struct TrieNode *trie_create_root();
+struct TrieNode *trie_fillout_path(struct TrieNode *root, char *path);
 void trie_appened_child(struct TrieNode *node, struct TrieNode *child);
 void trie_free(struct TrieNode *node);
 struct Optional trie_get_node(struct TrieNode *root, const char *path);

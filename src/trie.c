@@ -1,5 +1,7 @@
 #include "trie.h"
+#include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 struct TrieNode *optional_unwrap(struct Optional *op) {
   if (op->type == OPTIONAL_VALUE)
     return op->data.ptr;
@@ -48,6 +50,27 @@ void trie_free(struct TrieNode *node) {
     trie_free(node->children[i]);
   }
   free(node);
+}
+
+struct TrieNode *trie_fillout_path(struct TrieNode *root, char *path) {
+  size_t path_len = strlen(path);
+
+  struct TrieNode *node = root;
+  for (size_t i = 0; i < path_len; i++) {
+    for (size_t c = 0; c < node->children_len; c++) {
+      if (node->children[c]->type == TRIE_CHAR &&
+          node->children[c]->data.c == path[i]) {
+        node = node->children[c];
+        goto next_char;
+      }
+    }
+    struct TrieNode *parent = node;
+    node = trie_create_char(path[i]);
+    trie_appened_child(parent, node);
+  next_char:
+    continue;
+  }
+  return node;
 }
 
 struct Optional trie_get_node(struct TrieNode *root, const char *path) {

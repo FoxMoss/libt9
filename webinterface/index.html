@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>libt9</title>
+    <link rel="stylesheet" href="https://unpkg.com/7.css">
+  </head>
+  <body>
+    <div class="window active">
+      <div class="title-bar">
+        <div class="title-bar-text">T9 Typing Demo</div>
+      </div>
+      <div class="window-body has-space">
+        <input type="text" class="text" id="text" />
+        <div class="row">
+          <button class="key" id="1">
+            <div class="num">1</div>
+            <div class="hint">
+              <span class="small"></span>
+              <span class="small"></span>
+              <span class="small"></span>
+            </div>
+          </button>
+          <button class="key" id="2">
+            <div class="num">2</div>
+            <div class="hint">
+              <span class="small">A</span>
+              <span class="small">B</span>
+              <span class="small">C</span>
+            </div>
+          </button>
+          <button class="key" id="3">
+            <div class="num">3</div>
+            <div class="hint">
+              <span class="small">D</span>
+              <span class="small">E</span>
+              <span class="small">F</span>
+            </div>
+          </button>
+        </div>
+        <div class="row">
+          <button class="key" id="4">
+            <div class="num">4</div>
+            <div class="hint">
+              <span class="small">G</span>
+              <span class="small">I</span>
+              <span class="small">H</span>
+            </div>
+          </button>
+          <button class="key" id="5">
+            <div class="num">5</div>
+            <div class="hint">
+              <span class="small">J</span>
+              <span class="small">K</span>
+              <span class="small">L</span>
+            </div>
+          </button>
+          <button class="key" id="6">
+            <div class="num">6</div>
+            <div class="hint">
+              <span class="small">M</span>
+              <span class="small">N</span>
+              <span class="small">O</span>
+            </div>
+          </button>
+        </div>
+        <div class="row">
+          <button class="key" id="7">
+            <div class="num">7</div>
+            <div class="hint">
+              <span class="small">P</span>
+              <span class="small">Q</span>
+              <span class="small">R</span>
+              <span class="small">S</span>
+            </div>
+          </button>
+          <button class="key" id="8">
+            <div class="num">8</div>
+            <div class="hint">
+              <span class="small">T</span>
+              <span class="small">U</span>
+              <span class="small">V</span>
+            </div>
+          </button>
+          <button class="key" id="9">
+            <div class="num">9</div>
+            <div class="hint">
+              <span class="small">W</span>
+              <span class="small">X</span>
+              <span class="small">Y</span>
+              <span class="small">Z</span>
+            </div>
+          </button>
+        </div>
+        <div class="row">
+          <button class="key" id="*">
+            <div class="num">*</div>
+            <div class="hint">
+              <span class="small"></span>
+              <span class="small"></span>
+              <span class="small"></span>
+            </div>
+          </button>
+          <button class="key" id="0">
+            <div class="num">0</div>
+            <div class="hint">
+              <span class="small"></span>
+              <span class="small"></span>
+              <span class="small"></span>
+            </div>
+          </button>
+          <button class="key" id="#">
+            <div class="num">#</div>
+            <div class="hint">
+              <span class="small"></span>
+              <span class="small"></span>
+              <span class="small"></span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  
+    {{{ SCRIPT }}}
+    <script src="script.js"></script>
+    <style>
+    .key {
+      aspect-ratio: 16/9;
+      margin: 3px;
+    } 
+    .row {
+      display: flex;
+    }
+    .hint {
+      min-height: 14px;
+    }
+    .num, .text {
+      font-size: medium;
+    }
+    .window {
+      max-width: 274px;
+    }
+    .text {
+      width: 245px;
+      padding: 1em;
+    }
+    </style>
+  </body>
+</html>

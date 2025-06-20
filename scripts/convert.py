@@ -1,13 +1,10 @@
 import re
 from tqdm import tqdm
 
-write_file = """
-#include "wordlist.h"
-
-struct TrieNode *trie_load_wordlist() {
-struct TrieNode * p = trie_create_root();
-"""
 output_file = open('wordlist.h', 'w')
+
+path_preamble = ""
+main_section = ""
 
 t9_map = {
     2: ["a", "b", "c"],
@@ -34,49 +31,79 @@ def to_t9(word):
 
 def fillout_trie(t9):
     global trie_computed
-    ret = ""
+    global main_section
+    global path_preamble
     path = "p"
     for num in t9:
         path += num
         if path in trie_computed:
             continue
-        ret += f"struct TrieNode *{path} = trie_create_char('{num}');"
-        ret += f"trie_appened_child({path[:-1]}, {path});"
+        path_preamble += f"static struct TrieNode *{path};"
+        main_section += f"{path} = trie_create_char('{num}');"
+        main_section += f"trie_appened_child({path[:-1]}, {path});"
         trie_computed.add(path)
-    return ret
 
 
 def fillout_word(path, word, frequency):
     global rolling_id
+    global main_section
     rolling_id += 1
-    return (f"struct Word w{rolling_id} = {{\"{word}\", {frequency}}};"
-            f"struct TrieNode * n{rolling_id} = trie_create_word(w{rolling_id});"
-            f"trie_appened_child({path}, n{rolling_id});")
+    main_section += f"struct Word w{rolling_id} = {{\"{word}\", {frequency}}};\n"
+    main_section += f"struct TrieNode * n{rolling_id} = trie_create_word(w{rolling_id});\n"
+    main_section += f'trie_appened_child(trie_fillout_path(p, "{path}"), n{rolling_id}); \n'
+
+
+loadsection = 0
 
 
 def process_word_list(file_path):
-    global write_file
+    global loadsection
+    global main_section
+    global path_preamble
     with open(file_path, 'r') as file:
         lines = file.readlines()
         for line in tqdm(lines, desc="Processing words", unit="word"):
             columns = line.strip().split('\t')
+            if len(words_computed) % 2000 == 0:
+                loadsection += 1
+                if loadsection != 1:
+                    main_section += f"trie_load_wordlist{loadsection}();\n"
+                    main_section += "return;"
+                    main_section += "}"
+                path_preamble += f"void trie_load_wordlist{loadsection}();\n"
+                main_section += f"void trie_load_wordlist{loadsection}() {'{'}\n"
+            if loadsection > 10:
+                break
             if len(columns) == 3:
                 words, frequency = columns[1], columns[2]
                 for word in words.split():
-                    if word in words_computed:
-                        continue
-                    words_computed.add(word)
-
                     cleaned_word = re.sub(r'[^a-zA-Z]', '', word)
+
+                    if cleaned_word in words_computed:
+                        continue
+                    words_computed.add(cleaned_word)
                     if cleaned_word:
                         t9 = to_t9(cleaned_word)
-                        write_file += fillout_trie(t9)
-                        write_file += fillout_word('p' +
-                                                   ''.join(t9), cleaned_word, frequency)
+                        fillout_word(''.join(t9), cleaned_word, frequency)
+        main_section += "return;\n"
+        main_section += "}\n"
 
 
 file_path = 'word_list.txt'
 process_word_list(file_path)
 
-write_file += "return p;}"
+write_file = """
+#include "wordlist.h"
+
+struct TrieNode *p;
+"""
+write_file += path_preamble
+write_file += main_section
+write_file += """
+struct TrieNode *trie_load_wordlist() {
+p = trie_create_root();
+trie_load_wordlist1();
+return p;
+}
+"""
 output_file.write(write_file)

@@ -1,13 +1,27 @@
 #include "trie.h"
+
+#ifndef KERNEL
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#else
+#include <linux/hid.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/slab.h>
+#include <linux/usb/input.h>
+#define printf printk
+#define malloc(val) kmalloc(val, GFP_KERNEL)
+#define realloc(val1, val2) krealloc(val1, val2, GFP_KERNEL)
+#define free(val) kfree(val)
+#endif
+
 struct TrieNode *optional_unwrap(struct Optional *op) {
   if (op->type == OPTIONAL_VALUE)
     return op->data.ptr;
 
   printf("Error: %s\n", op->data.err);
-  exit(-1);
 
   return NULL;
 }
@@ -30,7 +44,7 @@ struct TrieNode *trie_create_char(char c) {
   return ret;
 }
 
-struct TrieNode *trie_create_root() {
+struct TrieNode *trie_create_root(void) {
   struct TrieNode *ret = (struct TrieNode *)malloc(sizeof(struct TrieNode));
   ret->type = TRIE_ROOT;
   ret->children = (struct TrieNode **)malloc(0);

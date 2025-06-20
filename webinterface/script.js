@@ -38,4 +38,3 @@ document.getElementById("#").addEventListener("click", () => {
   rerender();
   index = 0;
 });
-

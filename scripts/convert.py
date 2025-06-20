@@ -1,7 +1,7 @@
 import re
 from tqdm import tqdm
 
-output_file = open('wordlist.h', 'w')
+output_file = open('wordlist.c', 'w')
 
 path_preamble = ""
 main_section = ""
@@ -70,10 +70,10 @@ def process_word_list(file_path):
                     main_section += f"trie_load_wordlist{loadsection}();\n"
                     main_section += "return;"
                     main_section += "}"
-                path_preamble += f"void trie_load_wordlist{loadsection}();\n"
-                main_section += f"void trie_load_wordlist{loadsection}() {'{'}\n"
-            if loadsection > 10:
-                break
+                path_preamble += f"void trie_load_wordlist{loadsection}(void);\n"
+                main_section += f"void trie_load_wordlist{loadsection}(void) {'{'}\n"
+            # if loadsection > 3:
+            #     break
             if len(columns) == 3:
                 words, frequency = columns[1], columns[2]
                 for word in words.split():
@@ -100,7 +100,7 @@ struct TrieNode *p;
 write_file += path_preamble
 write_file += main_section
 write_file += """
-struct TrieNode *trie_load_wordlist() {
+struct TrieNode *trie_load_wordlist(void) {
 p = trie_create_root();
 trie_load_wordlist1();
 return p;

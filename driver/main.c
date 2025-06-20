@@ -1,6 +1,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-#include "../src/wordlist.h"
+#include "trie.h"
+#include "wordlist.h"
 #include <linux/hid.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -274,12 +275,17 @@ size_t strlcpy(char *__restrict dest, const char *__restrict src, size_t size) {
   return src_length;
 }
 
+// from my mind
+// size_t strlen(const char * str){
+//
+// }
 /*
  * Version Information
  */
 #define DRIVER_VERSION ""
 #define DRIVER_AUTHOR "FoxMoss"
-#define DRIVER_DESC "USB HID Boot Protocol keyboard driver"
+#define DRIVER_DESC                                                            \
+  "USB HID Boot Protocol keyboard driver with builtin T9 typing"
 #define DRIVER_LICENSE "GPL"
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
@@ -351,7 +357,183 @@ struct usb_kbd {
 };
 // mode == 0 means mode 1, mode == 1 means mode 2.
 
+static struct TrieNode *root = NULL;
+
+char to_lower(char c) {
+  if (c >= 'A' && c <= 'Z') {
+    return c - 'A' + 'a';
+  }
+  return c;
+}
+
+char *get_word(char *path, size_t index) {
+  struct Optional optional = trie_get_node(root, path);
+  if (optional.type == OPTIONAL_ERROR)
+    return path;
+
+  struct TrieNode *node = optional.data.ptr;
+  if (node->children_len == 0)
+    return path;
+
+  int no_words = 0;
+  for (size_t i = 0; i < node->children_len; i++) {
+    if (node->children[i]->type == TRIE_WORD) {
+      no_words++;
+    }
+  }
+  if (no_words == 0) {
+    return path;
+  }
+
+  size_t skipped = 0;
+  size_t current_index = 0;
+  do {
+    if (node->children[current_index]->type == TRIE_WORD) {
+      if (skipped < index) {
+        skipped++;
+        current_index++;
+        current_index %= node->children_len;
+        continue;
+      }
+      return node->children[current_index]->data.w.str;
+    }
+    current_index++;
+    current_index %= node->children_len;
+  } while (1);
+  return path;
+}
+char kbd_US[128] = {
+    0,   27,   '1', '2',  '3',  '4',  '5',  '6', '7',
+    '8', '9',  '0', '-',  '=',  '\b', '\t', /* <-- Tab */
+    'q', 'w',  'e', 'r',  't',  'y',  'u',  'i', 'o',
+    'p', '[',  ']', '\n', 0, /* <-- control key */
+    'a', 's',  'd', 'f',  'g',  'h',  'j',  'k', 'l',
+    ';', '\'', '`', 0,    '\\', 'z',  'x',  'c', 'v',
+    'b', 'n',  'm', ',',  '.',  '/',  0,    '*', 0, /* Alt */
+    ' ',                                            /* Space bar */
+    0,                                              /* Caps lock */
+    0,                                              /* 59 - F1 key ... > */
+    0,   0,    0,   0,    0,    0,    0,    0,   0, /* < ... F10 */
+    0,                                              /* 69 - Num lock*/
+    0,                                              /* Scroll Lock */
+    0,                                              /* Home key */
+    0,                                              /* Up Arrow */
+    0,                                              /* Page Up */
+    '-', 0,                                         /* Left Arrow */
+    0,   0,                                         /* Right Arrow */
+    '+', 0,                                         /* 79 - End key*/
+    0,                                              /* Down Arrow */
+    0,                                              /* Page Down */
+    0,                                              /* Insert Key */
+    0,                                              /* Delete Key */
+    0,   0,    0,   0,                              /* F11 Key */
+    0,                                              /* F12 Key */
+    0, /* All other keys are undefined */
+};
+
+static char buffer[256];
+static size_t index = 0;
+static char *str = "";
+static size_t cursor = 0;
+
+static void input_report_key_proxy(struct input_dev *dev, unsigned int code,
+                                   int value) {
+  if (root == NULL) {
+    root = trie_load_wordlist();
+  }
+  if (1 != value) {
+    return;
+  }
+  unsigned int ret_code = code;
+
+  if (ret_code == KEY_KP0) {
+    input_report_key(dev, KEY_SPACE, 1);
+    input_report_key(dev, KEY_SPACE, 0);
+    str = "";
+    cursor = 0;
+    index = 0;
+    return;
+  }
+
+  char c = 0;
+  size_t last_strlen = strlen(str);
+
+  if (ret_code == KEY_KP7) {
+    ret_code = KEY_KP1;
+    c = '1';
+  } else if (ret_code == KEY_KP8) {
+    ret_code = KEY_KP2;
+    c = '2';
+  } else if (ret_code == KEY_KP9) {
+    ret_code = KEY_KP3;
+    c = '3';
+  } else if (ret_code == KEY_KP4) {
+    ret_code = KEY_KP4;
+    c = '4';
+  } else if (ret_code == KEY_KP5) {
+    ret_code = KEY_KP5;
+    c = '5';
+  } else if (ret_code == KEY_KP6) {
+    ret_code = KEY_KP6;
+    c = '6';
+  } else if (ret_code == KEY_KP1) {
+    ret_code = KEY_KP7;
+    c = '7';
+  } else if (ret_code == KEY_KP2) {
+    ret_code = KEY_KP8;
+    c = '8';
+  } else if (ret_code == KEY_KP3) {
+    ret_code = KEY_KP9;
+    c = '9';
+  } else if (ret_code == KEY_KPASTERISK) {
+    index++;
+  } else if (ret_code == KEY_KPMINUS) {
+    // could probably be buffer[--cursor] but thats bull
+    if (cursor != 0) {
+      cursor--;
+    }
+    buffer[cursor] = 0;
+  }
+
+  if (c != 0) {
+    buffer[cursor] = c;
+    buffer[cursor + 1] = 0;
+    cursor++;
+    cursor %= 256;
+  }
+
+  for (size_t i = 0; i < last_strlen; i++) {
+    input_report_key(dev, KEY_BACKSPACE, 1);
+    input_report_key(dev, KEY_BACKSPACE, 0);
+  }
+  if (cursor == 0) {
+    return;
+  }
+
+  char *local_str = get_word(buffer, index);
+  printk("buffer at \"%s\" str is \"%s\"\n", buffer, local_str);
+
+  str = local_str;
+  do {
+    unsigned int keycode = KEY_SEMICOLON;
+    for (size_t i = 0; i < 128; i++) {
+      if (kbd_US[i] == to_lower(*local_str)) {
+        keycode = i;
+      }
+    }
+
+    input_report_key(dev, keycode, 1);
+    input_report_key(dev, keycode, 0);
+    local_str++;
+  } while (*local_str != 0);
+
+  // printk("sending key %s\n", keycode_map[ret_code]);
+  //
+  // input_report_key(dev, ret_code, value);
+}
+
 static void usb_kbd_irq(struct urb *urb) {
+
   struct usb_kbd *kbd = urb->context;
   int i;
 
@@ -368,8 +550,7 @@ static void usb_kbd_irq(struct urb *urb) {
   }
 
   for (i = 0; i < 8; i++) {
-    input_report_key(kbd->dev, usb_kbd_keycode[i + 224],
-                     (kbd->new[0] >> i) & 1);
+    input_report_key(kbd->dev, usb_kbd_keycode[i + 224], 0);
   }
 
   for (i = 2; i < 8; i++) {
@@ -377,7 +558,7 @@ static void usb_kbd_irq(struct urb *urb) {
     if (kbd->old[i] > 3 &&
         memscan(kbd->new + 2, kbd->old[i], 6) == kbd->new + 8) {
       if (usb_kbd_keycode[kbd->old[i]]) {
-        input_report_key(kbd->dev, usb_kbd_keycode[kbd->old[i]], 0);
+        input_report_key_proxy(kbd->dev, usb_kbd_keycode[kbd->old[i]], 0);
       } else
         hid_info(urb->dev, "Unknown key (scancode %#x) released.\n",
                  kbd->old[i]);
@@ -386,7 +567,7 @@ static void usb_kbd_irq(struct urb *urb) {
     if (kbd->new[i] > 3 &&
         memscan(kbd->old + 2, kbd->new[i], 6) == kbd->old + 8) {
       if (usb_kbd_keycode[kbd->new[i]]) {
-        input_report_key(kbd->dev, usb_kbd_keycode[kbd->new[i]], 1);
+        input_report_key_proxy(kbd->dev, usb_kbd_keycode[kbd->new[i]], 1);
         printk("got key %s\n", keycode_map[usb_kbd_keycode[kbd->new[i]]]);
       } else
         hid_info(urb->dev, "Unknown key (scancode %#x) pressed.\n",

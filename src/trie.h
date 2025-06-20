@@ -1,8 +1,13 @@
 #pragma once
+#include "kernel.info"
+#ifndef KERNEL
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#else
+typedef unsigned long size_t;
+#endif
 
 enum OptionalType { OPTIONAL_ERROR, OPTIONAL_VALUE };
 struct Optional {
@@ -33,7 +38,7 @@ struct TrieNode {
 
 struct TrieNode *trie_create_word(struct Word word);
 struct TrieNode *trie_create_char(char c);
-struct TrieNode *trie_create_root();
+struct TrieNode *trie_create_root(void);
 struct TrieNode *trie_fillout_path(struct TrieNode *root, char *path);
 void trie_appened_child(struct TrieNode *node, struct TrieNode *child);
 void trie_free(struct TrieNode *node);

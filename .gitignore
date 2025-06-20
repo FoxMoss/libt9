@@ -1,3 +1,16 @@
 build/
 compile_commands.json
 .cache/
+*.o
+*.ko
+*.cmd
+driver/trie.h
+driver/trie.c
+driver/wordlist.h
+driver/wordlist.c
+driver/.*
+driver/*.mod.c
+driver/*.mod
+driver/*.order
+driver/*.a
+driver/*.symvers

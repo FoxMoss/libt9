@@ -15,4 +15,5 @@ Feel free to contribute!
 
 ## Credit
 The image used as the background for the web demo was created by Matt Hardy.     
-Word data set is from [Takala on HuggingFace](https://huggingface.co/datasets/takala/financial_phrasebank)
+Word data set is from [Takala on HuggingFace](https://huggingface.co/datasets/takala/financial_phrasebank).
+The [orignal driver code](https://github.com/chengtaow/Linux-Keyboard-Driver) came from Chengtao Wang.

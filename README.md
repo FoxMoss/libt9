@@ -2,7 +2,9 @@
 A C library for creating [T9](https://en.wikipedia.org/wiki/T9_%28predictive_text%29) typing systems.
 
 ## Dependencies
-None! The library requires nothing but a basic implementation of the C standard library. 
+None! The library requires nothing but a basic implementation of the C standard
+library. The CLI requires ncurses solely, but this is by no means needed to
+just compile the library.
 
 ## Todo
 Feel free to contribute!

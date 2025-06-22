@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
   WINDOW *win = newwin(3, 0, 0, 0);
   WINDOW *tree = newwin(0, 0, 3, 0);
   WINDOW *options = newwin(4 + menu_len, max_x - 10, 5, 5);
-  WINDOW *cheatsheet = newwin(24, 21, 5, max_x - 40);
+  WINDOW *cheatsheet = newwin(24, 21, 1, max_x - 23);
 
   char current_word_buffer[256] = {};
   char *str = malloc(0);

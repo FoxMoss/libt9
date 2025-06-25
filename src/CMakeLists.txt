@@ -1,7 +1,14 @@
-add_library(t9
-  wordlist.c
-  trie.c
-)
+
+set(SOURCES trie.c)
+
+if(ENABLE_WORDLIST)
+    message(STATUS "Including wordlist feature")
+    list(APPEND SOURCES wordlist.c)
+else()
+    message(STATUS "Wordlist feature not included")
+endif()
+
+add_library(t9 ${SOURCES})
 
 target_include_directories(t9 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}

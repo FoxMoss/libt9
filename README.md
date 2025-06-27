@@ -35,5 +35,5 @@ Feel free to contribute!
 
 ## Credit
 The image used as the background for the web demo was created by Matt Hardy.     
-Word data set is from [wortschatz-leipzig.de](https://wortschatz-leipzig.de/en).
+Word data set is from [wortschatz-leipzig.de](https://wortschatz.uni-leipzig.de/en/download/German#deu_news_2024).
 The [orignal driver code](https://github.com/chengtaow/Linux-Keyboard-Driver) came from Chengtao Wang.

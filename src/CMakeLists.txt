@@ -1,4 +1,3 @@
-
 set(SOURCES trie.c)
 
 if(ENABLE_WORDLIST)

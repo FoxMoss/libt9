@@ -1,12 +1,14 @@
-#include <cstddef>
+#include "../protobuf/t9db.pb.h"
+#include "sentencepiece_model.pb.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
-#include <functional>
+#include <google/protobuf/any.h>
 #include <optional>
 #include <sentencepiece_processor.h>
 #include <string>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
 
@@ -104,34 +106,35 @@ bool is_letter(char c) {
 struct MarkovNode {
   std::string node;
   uint32_t freq;
-  uint32_t hash;
-  std::unordered_map<std::string, uint32_t> children;
-  uint32_t offset;
+  std::unordered_map<int, uint32_t> children;
 };
 
-struct TrieNode {
+struct RawTrieNode {
   char path;
-  std::vector<TrieNode *> children; // auto frees?
-  std::vector<std::string> tokens;
-  uint32_t offset;
+  std::vector<RawTrieNode *> children; // auto frees?
+  std::vector<int> tokens;
+  uint32_t freq;
+  uint32_t index;
 };
 
-std::unordered_map<std::string, MarkovNode> tokens;
-uint32_t end_array = hash_func("[end_array]", strlen("[end_array]"));
-void recurse_trie(TrieNode *node, FILE *file) {
+std::unordered_map<int, MarkovNode> tokens;
+static uint32_t global_index = 0;
+void recurse_trie(RawTrieNode *node, T9Database *db) {
   for (auto child : node->children) {
-    recurse_trie(child, file);
+    recurse_trie(child, db);
   }
-  node->offset = ftell(file);
-  fwrite((char *)&node->path, sizeof(char), 1, file);
+  node->index = global_index++;
+  auto trie_node = db->add_trie_memory();
+  trie_node->set_node_index(node->index);
+  trie_node->set_character(node->path);
+  trie_node->set_freq(node->freq);
+
   for (auto child : node->children) {
-    fwrite((char *)&child->offset, sizeof(uint32_t), 1, file);
+    trie_node->add_children(child->index);
   }
-  fwrite((char *)&end_array, sizeof(uint32_t), 1, file);
   for (auto token : node->tokens) {
-    fwrite((char *)&tokens[token].hash, sizeof(uint32_t), 1, file);
+    trie_node->add_tokens(token);
   }
-  fwrite((char *)&end_array, sizeof(uint32_t), 1, file);
 };
 
 int main(int argc, char *argv[]) {
@@ -139,9 +142,9 @@ int main(int argc, char *argv[]) {
     printf("Usage: %s [model] [infile] [outfile]\n", "t9parser");
     return 1;
   }
-  std::ifstream read_stream(argv[1]);
+  std::ifstream read_stream(argv[2]);
   sentencepiece::SentencePieceProcessor processor;
-  const auto status = processor.Load(argv[3]);
+  const auto status = processor.Load(std::string_view(argv[1]));
   if (!status.ok()) {
     printf("%s", status.error_message());
     return 1;
@@ -157,7 +160,7 @@ int main(int argc, char *argv[]) {
     std::string tweet;
     for (auto c : tweet_context) {
       // 6 commas before  what we want
-      if (comma_count >= 6)
+      if (comma_count >= 6 && is_letter(c))
         tweet.push_back(c);
       if (c == '.' && tweet != "") {
         lines.push_back(tweet);
@@ -170,83 +173,62 @@ int main(int argc, char *argv[]) {
   }
   for (uint32_t a_i = 0; a_i < lines.size(); a_i++) {
     std::vector<std::string> pieces;
+    std::vector<int> ids;
     processor.Encode(lines[a_i], &pieces);
-    for (const std::string &token : pieces) {
-      printf("%s\n", token.c_str());
-      tokens[token]++;
+    processor.Encode(lines[a_i], &ids);
+    for (uint32_t token_i = 0; token_i < ids.size(); token_i++) {
+      if (tokens.find(ids[token_i]) == tokens.end()) {
+        tokens[ids[token_i]] = {pieces[token_i], 1, {}};
+        printf("%s\n", pieces[token_i].c_str());
+      }
+      tokens[ids[token_i]].freq++;
     }
   }
 
   for (auto pair : tokens) {
-    printf("%s : %u\n", pair.first.c_str(), pair.second.freq);
+    printf("%s : %u\n", pair.second.node.c_str(), pair.second.freq);
   }
 
   for (uint32_t a_i = 0; a_i < lines.size(); a_i++) {
-    std::string a = lines[a_i];
     printf("Chaining words %f\n", (float)a_i / lines.size() * 100);
+    std::string a = lines[a_i];
 
-    uint32_t line_i = 0;
-    std::string buffer = "";
-    std::string last_tok = "[start_token]";
-    while (line_i != a.size()) {
-      buffer = "";
-      if (a[line_i] == ' ') {
-        buffer = " ";
-        line_i++;
-        goto found_token;
+    std::optional<int> last_tok;
+    std::vector<std::string> pieces;
+    std::vector<int> ids;
+    processor.Encode(lines[a_i], &pieces);
+    processor.Encode(lines[a_i], &ids);
+
+    for (uint32_t token_i = 0; token_i < ids.size(); token_i++) {
+      if (tokens.find(ids[token_i]) == tokens.end()) {
+        tokens[ids[token_i]] = {pieces[token_i], 1, {}};
+        printf("%s\n", pieces[token_i].c_str());
       }
-      {
-        std::optional<std::string> longest_match;
-        for (auto token : tokens) {
-          if (str_starts_with(a.substr(line_i, a.size() - line_i),
-                              token.first)) {
-            if (!longest_match.has_value()) {
-              longest_match = token.first;
-              continue;
-            }
-            if (longest_match->size() < a.size()) {
-              longest_match = token.first;
-            }
-          }
-        }
-        if (longest_match.has_value()) {
-          line_i += longest_match.value().size();
-          buffer = longest_match.value();
-          goto found_token;
-        }
+
+      if (last_tok.has_value()) {
+        tokens[last_tok.value()].children[last_tok.value()]++;
       }
-      while (line_i != a.size() && a[line_i] != ' ') {
-        buffer.push_back(a[line_i]);
-        line_i++;
-      }
-    found_token:
-      if (tokens.find(last_tok) == tokens.end()) {
-        tokens[last_tok].node = last_tok;
-        tokens[last_tok].freq = 1;
-      }
-      tokens[last_tok].children[buffer]++;
-      printf("[%s]\n", buffer.c_str());
-      last_tok = buffer;
+      printf("[%s]\n", pieces[token_i].c_str());
+      last_tok = ids[token_i];
     }
-    if (tokens.find(last_tok) == tokens.end()) {
-      tokens[last_tok].node = last_tok;
-      tokens[last_tok].freq = 1;
-    }
-    tokens[last_tok].children["[end_token]"]++;
   }
 
-  std::unordered_map<char, TrieNode *> roots;
-  TrieNode *last_node = NULL;
-  for (auto token : tokens) {
-    if (token.first == "[start_token]" || token.first == "[end_token]")
-      continue;
+  std::unordered_map<char, RawTrieNode *> roots;
+  sentencepiece::ModelProto model = processor.model_proto();
 
-    for (char c : token.first) {
+  for (int id = 0; id < model.pieces_size(); ++id) { // i is id
+    const auto &sp = model.pieces(id);
+    RawTrieNode *last_node = NULL;
+    if (tokens.find(id) == tokens.end()) {
+      tokens[id] = {sp.piece(), 0, {}};
+    }
+
+    for (char c : sp.piece()) {
       char t9 = char_to_t9(c);
-      TrieNode *curent_node;
+      RawTrieNode *curent_node;
       if (last_node == NULL) {
         if (roots.find(t9) == roots.end()) {
-          roots[t9] = new TrieNode{t9, {}, {}};
+          roots[t9] = new RawTrieNode{t9, {}, {}, 0};
         }
         curent_node = roots[t9];
       } else {
@@ -256,56 +238,119 @@ int main(int argc, char *argv[]) {
             goto skip_creation;
           }
         }
-        curent_node = new TrieNode{t9, {}, {}};
-        last_node->children.push_back(curent_node);
+        curent_node = new RawTrieNode{t9, {}, {}, 0};
       }
     skip_creation:
 
+      curent_node->freq++;
+      last_node->children.push_back(curent_node);
       last_node = curent_node;
     }
     if (last_node != NULL) {
-      last_node->tokens.push_back(token.first);
+      last_node->tokens.push_back(id);
     }
   }
 
-  FILE *outfile = fopen(argv[2], "w");
-  // generate lookup tables
-  for (auto &token : tokens) {
-    uint32_t length = token.first.size();
-    uint32_t zero = 0;
-    uint32_t hash = hash_func(token.first.c_str(), token.first.size());
-    token.second.hash = hash;
-    fwrite((char *)&hash, sizeof(uint32_t), 1, outfile);
-    fwrite((char *)&length, sizeof(uint32_t), 1, outfile);
-    fwrite(token.first.c_str(), token.first.size(), 1, outfile);
-    fwrite((char *)&token.second.freq, sizeof(uint32_t), 1, outfile);
-    token.second.offset = ftell(outfile);
-    fwrite((char *)&zero, sizeof(uint32_t), 1,
-           outfile); // gets overwritten by ptr
-  }
-  fwrite((char *)&end_array, sizeof(uint32_t), 1, outfile);
+  T9Database db;
   for (auto token : tokens) {
-    uint32_t current_loc = ftell(outfile);
-    fseek(outfile, token.second.offset, SEEK_SET);
-    fwrite((char *)&current_loc, sizeof(uint32_t), 1,
-           outfile); // gets overwritten by ptr
-    fseek(outfile, current_loc, SEEK_SET);
-
-    for (auto child : token.second.children) {
-      uint32_t hash = hash_func(child.first.c_str(), child.first.size());
-      fwrite((char *)&hash, sizeof(uint32_t), 1, outfile);
-      fwrite((char *)&child.second, sizeof(uint32_t), 1, outfile);
+    auto tok = db.add_tokens();
+    tok->set_id(token.first);
+    tok->set_freq(token.second.freq);
+    for (auto edge_value : token.second.children) {
+      auto edge = tok->add_edges();
+      edge->set_target_id(edge_value.first);
+      edge->set_freq(edge_value.second);
     }
-    fwrite((char *)&end_array, sizeof(uint32_t), 1, outfile);
   }
 
   for (auto root : roots) {
-    recurse_trie(root.second, outfile);
+    for (auto child : root.second->children) {
+      recurse_trie(child, &db);
+    }
+    auto trie_node = db.add_roots();
+    trie_node->set_character(root.second->path);
+    trie_node->set_freq(root.second->freq);
+
+    for (auto child : root.second->children) {
+      trie_node->add_children(child->index);
+    }
+    for (auto token : root.second->tokens) {
+      trie_node->add_tokens(token);
+    }
   }
 
-  fclose(outfile);
+  std::ofstream outfile(argv[3]);
+  outfile << db.SerializeAsString();
+  outfile.close();
 
-  printf("end_array = %u\n", end_array);
+  // RawTrieNode *last_node = NULL;
+  //   if (token.first == "[start_token]" || token.first == "[end_token]")
+  //     continue;
+  //
+  //   for (char c : token.first) {
+  //     char t9 = char_to_t9(c);
+  //     RawTrieNode *curent_node;
+  //     if (last_node == NULL) {
+  //       if (roots.find(t9) == roots.end()) {
+  //         roots[t9] = new RawTrieNode{t9, {}, {}};
+  //       }
+  //       curent_node = roots[t9];
+  //     } else {
+  //       for (auto child : last_node->children) {
+  //         if (child->path == t9) {
+  //           curent_node = child;
+  //           goto skip_creation;
+  //         }
+  //       }
+  //       curent_node = new RawTrieNode{t9, {}, {}};
+  //       last_node->children.push_back(curent_node);
+  //     }
+  //   skip_creation:
+  //
+  //     last_node = curent_node;
+  //   }
+  //   if (last_node != NULL) {
+  //     last_node->tokens.push_back(token.first);
+  //   }
+  // }
+  //
+  // // generate lookup tables
+  // for (auto &token : tokens) {
+  //   uint32_t length = token.first.size();
+  //   uint32_t zero = 0;
+  //   uint32_t hash = hash_func(token.first.c_str(), token.first.size());
+  //   token.second.hash = hash;
+  //   fwrite((char *)&hash, sizeof(uint32_t), 1, outfile);
+  //   fwrite((char *)&length, sizeof(uint32_t), 1, outfile);
+  //   fwrite(token.first.c_str(), token.first.size(), 1, outfile);
+  //   fwrite((char *)&token.second.freq, sizeof(uint32_t), 1, outfile);
+  //   token.second.offset = ftell(outfile);
+  //   fwrite((char *)&zero, sizeof(uint32_t), 1,
+  //          outfile); // gets overwritten by ptr
+  // }
+  // fwrite((char *)&end_array, sizeof(uint32_t), 1, outfile);
+  // for (auto token : tokens) {
+  //   uint32_t current_loc = ftell(outfile);
+  //   fseek(outfile, token.second.offset, SEEK_SET);
+  //   fwrite((char *)&current_loc, sizeof(uint32_t), 1,
+  //          outfile); // gets overwritten by ptr
+  //   fseek(outfile, current_loc, SEEK_SET);
+  //
+  //   for (auto child : token.second.children) {
+  //     uint32_t hash = hash_func(child.first.c_str(), child.first.size());
+  //     fwrite((char *)&hash, sizeof(uint32_t), 1, outfile);
+  //     fwrite((char *)&child.second, sizeof(uint32_t), 1, outfile);
+  //   }
+  //   fwrite((char *)&end_array, sizeof(uint32_t), 1, outfile);
+  // }
+  //
+  // for (auto root : roots) {
+  //   recurse_trie(root.second, outfile);
+  // }
+  //
+  // fclose(outfile);
+  //
+  // printf("end_array = %u\n", end_array);
 
   return 0;
 }

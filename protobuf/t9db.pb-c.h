@@ -78,12 +78,10 @@ struct  T9Database
   Token **tokens;
   size_t n_roots;
   TrieNode **roots;
-  size_t n_trie_memory;
-  TrieNode **trie_memory;
 };
 #define T9_DATABASE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&t9_database__descriptor) \
-    , 0,NULL, 0,NULL, 0,NULL }
+    , 0,NULL, 0,NULL }
 
 
 /* TokenEdge methods */

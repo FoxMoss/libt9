@@ -1,13 +1,14 @@
-set(SOURCES trie.c)
+set(SOURCES trie.c parser.c)
 
 if(ENABLE_WORDLIST)
     message(STATUS "Including wordlist feature")
-    list(APPEND SOURCES wordlist.c)
+    # list(APPEND SOURCES wordlist.c)
 else()
     message(STATUS "Wordlist feature not included")
 endif()
 
 add_library(t9 ${SOURCES})
+target_link_libraries(t9 t9protocol)
 
 target_include_directories(t9 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}

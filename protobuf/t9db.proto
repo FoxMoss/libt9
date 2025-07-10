@@ -23,5 +23,4 @@ message TrieNode {
 message T9Database {
   repeated Token tokens = 1;
   repeated TrieNode roots = 2;
-  repeated TrieNode trie_memory = 3;
 }

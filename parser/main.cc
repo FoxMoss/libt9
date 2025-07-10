@@ -1,10 +1,12 @@
-#include "../protobuf/t9db.pb.h"
 #include "sentencepiece_model.pb.h"
+#include "t9db.pb.h"
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
-#include <google/protobuf/any.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/message_lite.h>
 #include <optional>
 #include <sentencepiece_processor.h>
 #include <string>
@@ -51,21 +53,6 @@ char char_to_t9(char c) {
   default:
     return '\0';
   }
-}
-
-// https://en.wikipedia.org/wiki/Jenkins_hash_function
-uint32_t hash_func(const char *key, uint32_t length) {
-  uint32_t i = 0;
-  uint32_t hash = 0;
-  while (i != length) {
-    hash += key[i++];
-    hash += hash << 10;
-    hash ^= hash >> 6;
-  }
-  hash += hash << 3;
-  hash ^= hash >> 11;
-  hash += hash << 15;
-  return hash;
 }
 
 std::vector<std::string> str_overlap(std::string a, std::string b) {
@@ -119,32 +106,45 @@ struct RawTrieNode {
 
 std::unordered_map<int, MarkovNode> tokens;
 static uint32_t global_index = 0;
-void recurse_trie(RawTrieNode *node, T9Database *db) {
+
+void write_trie(std::ofstream *stream, TrieNode *node) {
+  std::string serialized = node->SerializeAsString();
+  uint32_t serialized_len = serialized.size();
+  stream->write((char *)&serialized_len,
+                sizeof(uint32_t)); // host should be similar arch to client
+  stream->write(serialized.c_str(), serialized.size());
+}
+
+void recurse_trie(RawTrieNode *node, T9Database *db,
+                  std::ofstream *streamed_file) {
   for (auto child : node->children) {
-    recurse_trie(child, db);
+    recurse_trie(child, db, streamed_file);
   }
   node->index = global_index++;
-  auto trie_node = db->add_trie_memory();
-  trie_node->set_node_index(node->index);
-  trie_node->set_character(node->path);
-  trie_node->set_freq(node->freq);
+  auto trie_node = TrieNode();
+  trie_node.set_node_index(node->index);
+  trie_node.set_character(node->path);
+  trie_node.set_freq(node->freq);
 
   for (auto child : node->children) {
-    trie_node->add_children(child->index);
+    trie_node.add_children(child->index);
   }
   for (auto token : node->tokens) {
-    trie_node->add_tokens(token);
+    trie_node.add_tokens(token);
   }
-};
+  write_trie(streamed_file, &trie_node);
+}
 
 int main(int argc, char *argv[]) {
-  if (argc != 4) {
-    printf("Usage: %s [model] [infile] [outfile]\n", "t9parser");
+  if (argc != 5) {
+    printf("Usage: %s [model] [infile] [inmemoryfile] [streamedfile]\n",
+           "t9parser");
     return 1;
   }
   std::ifstream read_stream(argv[2]);
   sentencepiece::SentencePieceProcessor processor;
   const auto status = processor.Load(std::string_view(argv[1]));
+  processor.SetEncodeExtraOptions("bos:eos"); // add <s> and </s>.
   if (!status.ok()) {
     printf("%s", status.error_message());
     return 1;
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
       }
 
       if (last_tok.has_value()) {
-        tokens[last_tok.value()].children[last_tok.value()]++;
+        tokens[last_tok.value()].children[ids[token_i]]++;
       }
       printf("[%s]\n", pieces[token_i].c_str());
       last_tok = ids[token_i];
@@ -219,31 +219,39 @@ int main(int argc, char *argv[]) {
   for (int id = 0; id < model.pieces_size(); ++id) { // i is id
     const auto &sp = model.pieces(id);
     RawTrieNode *last_node = NULL;
+    printf("%i\n", id);
     if (tokens.find(id) == tokens.end()) {
       tokens[id] = {sp.piece(), 0, {}};
     }
 
     for (char c : sp.piece()) {
       char t9 = char_to_t9(c);
+      if (t9 == '\0') {
+        continue;
+      }
       RawTrieNode *curent_node;
       if (last_node == NULL) {
         if (roots.find(t9) == roots.end()) {
-          roots[t9] = new RawTrieNode{t9, {}, {}, 0};
+          roots[t9] = new RawTrieNode{t9, {}, {}, 1};
         }
         curent_node = roots[t9];
       } else {
+        printf("looking node %c\n", t9);
         for (auto child : last_node->children) {
+          printf("curent children %c\n", child->path);
           if (child->path == t9) {
+            printf("found\n");
             curent_node = child;
             goto skip_creation;
           }
         }
-        curent_node = new RawTrieNode{t9, {}, {}, 0};
+        printf("child created %c\n", t9);
+        curent_node = new RawTrieNode{t9, {}, {}, 1};
+        last_node->children.push_back(curent_node);
       }
     skip_creation:
 
       curent_node->freq++;
-      last_node->children.push_back(curent_node);
       last_node = curent_node;
     }
     if (last_node != NULL) {
@@ -256,6 +264,7 @@ int main(int argc, char *argv[]) {
     auto tok = db.add_tokens();
     tok->set_id(token.first);
     tok->set_freq(token.second.freq);
+    tok->set_value(token.second.node);
     for (auto edge_value : token.second.children) {
       auto edge = tok->add_edges();
       edge->set_target_id(edge_value.first);
@@ -263,9 +272,11 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  std::ofstream trie_stream(argv[4], std::ios::binary);
+
   for (auto root : roots) {
     for (auto child : root.second->children) {
-      recurse_trie(child, &db);
+      recurse_trie(child, &db, &trie_stream);
     }
     auto trie_node = db.add_roots();
     trie_node->set_character(root.second->path);
@@ -279,78 +290,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::ofstream outfile(argv[3]);
-  outfile << db.SerializeAsString();
-  outfile.close();
-
-  // RawTrieNode *last_node = NULL;
-  //   if (token.first == "[start_token]" || token.first == "[end_token]")
-  //     continue;
-  //
-  //   for (char c : token.first) {
-  //     char t9 = char_to_t9(c);
-  //     RawTrieNode *curent_node;
-  //     if (last_node == NULL) {
-  //       if (roots.find(t9) == roots.end()) {
-  //         roots[t9] = new RawTrieNode{t9, {}, {}};
-  //       }
-  //       curent_node = roots[t9];
-  //     } else {
-  //       for (auto child : last_node->children) {
-  //         if (child->path == t9) {
-  //           curent_node = child;
-  //           goto skip_creation;
-  //         }
-  //       }
-  //       curent_node = new RawTrieNode{t9, {}, {}};
-  //       last_node->children.push_back(curent_node);
-  //     }
-  //   skip_creation:
-  //
-  //     last_node = curent_node;
-  //   }
-  //   if (last_node != NULL) {
-  //     last_node->tokens.push_back(token.first);
-  //   }
-  // }
-  //
-  // // generate lookup tables
-  // for (auto &token : tokens) {
-  //   uint32_t length = token.first.size();
-  //   uint32_t zero = 0;
-  //   uint32_t hash = hash_func(token.first.c_str(), token.first.size());
-  //   token.second.hash = hash;
-  //   fwrite((char *)&hash, sizeof(uint32_t), 1, outfile);
-  //   fwrite((char *)&length, sizeof(uint32_t), 1, outfile);
-  //   fwrite(token.first.c_str(), token.first.size(), 1, outfile);
-  //   fwrite((char *)&token.second.freq, sizeof(uint32_t), 1, outfile);
-  //   token.second.offset = ftell(outfile);
-  //   fwrite((char *)&zero, sizeof(uint32_t), 1,
-  //          outfile); // gets overwritten by ptr
-  // }
-  // fwrite((char *)&end_array, sizeof(uint32_t), 1, outfile);
-  // for (auto token : tokens) {
-  //   uint32_t current_loc = ftell(outfile);
-  //   fseek(outfile, token.second.offset, SEEK_SET);
-  //   fwrite((char *)&current_loc, sizeof(uint32_t), 1,
-  //          outfile); // gets overwritten by ptr
-  //   fseek(outfile, current_loc, SEEK_SET);
-  //
-  //   for (auto child : token.second.children) {
-  //     uint32_t hash = hash_func(child.first.c_str(), child.first.size());
-  //     fwrite((char *)&hash, sizeof(uint32_t), 1, outfile);
-  //     fwrite((char *)&child.second, sizeof(uint32_t), 1, outfile);
-  //   }
-  //   fwrite((char *)&end_array, sizeof(uint32_t), 1, outfile);
-  // }
-  //
-  // for (auto root : roots) {
-  //   recurse_trie(root.second, outfile);
-  // }
-  //
-  // fclose(outfile);
-  //
-  // printf("end_array = %u\n", end_array);
+  std::ofstream output(argv[3], std::ios::binary);
+  google::protobuf::io::OstreamOutputStream output_stream(&output);
+  google::protobuf::io::CodedOutputStream coded_output(&output_stream);
+  db.SerializeToCodedStream(&coded_output);
 
   return 0;
 }

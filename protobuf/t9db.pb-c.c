@@ -405,7 +405,7 @@ const ProtobufCMessageDescriptor trie_node__descriptor =
   (ProtobufCMessageInit) trie_node__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor t9_database__field_descriptors[3] =
+static const ProtobufCFieldDescriptor t9_database__field_descriptors[2] =
 {
   {
     "tokens",
@@ -431,28 +431,15 @@ static const ProtobufCFieldDescriptor t9_database__field_descriptors[3] =
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
-  {
-    "trie_memory",
-    3,
-    PROTOBUF_C_LABEL_REPEATED,
-    PROTOBUF_C_TYPE_MESSAGE,
-    offsetof(T9Database, n_trie_memory),
-    offsetof(T9Database, trie_memory),
-    &trie_node__descriptor,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
 };
 static const unsigned t9_database__field_indices_by_name[] = {
   1,   /* field[1] = roots */
   0,   /* field[0] = tokens */
-  2,   /* field[2] = trie_memory */
 };
 static const ProtobufCIntRange t9_database__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 3 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor t9_database__descriptor =
 {
@@ -462,7 +449,7 @@ const ProtobufCMessageDescriptor t9_database__descriptor =
   "T9Database",
   "",
   sizeof(T9Database),
-  3,
+  2,
   t9_database__field_descriptors,
   t9_database__field_indices_by_name,
   1,  t9_database__number_ranges,

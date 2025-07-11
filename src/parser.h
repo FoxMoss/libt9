@@ -11,5 +11,6 @@ typedef struct {
 
 Cache init_cache(char *in_memory_file, char *streamed_file);
 void free_cache(Cache cache);
-Token *cache_find_token(int32_t id, Cache *cache);
-TrieNode *cache_get_trie(size_t id, Cache *cache);
+StoredToken *cache_find_token(int32_t id, Cache *cache);
+StoredTrieNode *cache_get_trie(size_t id, Cache *cache);
+StoredTrieNode *cache_simple_search(char *char_ptr, Cache *cache);

@@ -15,9 +15,10 @@ PROTOBUF_C__BEGIN_DECLS
 #endif
 
 
-typedef struct TokenEdge TokenEdge;
-typedef struct Token Token;
-typedef struct TrieNode TrieNode;
+typedef struct StoredWord StoredWord;
+typedef struct StoredTokenEdge StoredTokenEdge;
+typedef struct StoredToken StoredToken;
+typedef struct StoredTrieNode StoredTrieNode;
 typedef struct T9Database T9Database;
 
 
@@ -26,32 +27,43 @@ typedef struct T9Database T9Database;
 
 /* --- messages --- */
 
-struct  TokenEdge
+struct  StoredWord
+{
+  ProtobufCMessage base;
+  char *word;
+  uint32_t freq;
+};
+#define STORED_WORD__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&stored_word__descriptor) \
+    , NULL, 0 }
+
+
+struct  StoredTokenEdge
 {
   ProtobufCMessage base;
   int32_t target_id;
   uint32_t freq;
 };
-#define TOKEN_EDGE__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&token_edge__descriptor) \
+#define STORED_TOKEN_EDGE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&stored_token_edge__descriptor) \
     , 0, 0 }
 
 
-struct  Token
+struct  StoredToken
 {
   ProtobufCMessage base;
   int32_t id;
   uint32_t freq;
   char *value;
   size_t n_edges;
-  TokenEdge **edges;
+  StoredTokenEdge **edges;
 };
-#define TOKEN__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&token__descriptor) \
+#define STORED_TOKEN__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&stored_token__descriptor) \
     , 0, 0, NULL, 0,NULL }
 
 
-struct  TrieNode
+struct  StoredTrieNode
 {
   ProtobufCMessage base;
   protobuf_c_boolean has_node_index;
@@ -65,81 +77,102 @@ struct  TrieNode
   int32_t *tokens;
   size_t n_children;
   uint32_t *children;
+  size_t n_words;
+  StoredWord **words;
 };
-#define TRIE_NODE__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&trie_node__descriptor) \
-    , 0, 0, 0, 0, 0,NULL, 0,NULL }
+#define STORED_TRIE_NODE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&stored_trie_node__descriptor) \
+    , 0, 0, 0, 0, 0,NULL, 0,NULL, 0,NULL }
 
 
 struct  T9Database
 {
   ProtobufCMessage base;
   size_t n_tokens;
-  Token **tokens;
+  StoredToken **tokens;
   size_t n_roots;
-  TrieNode **roots;
+  StoredTrieNode **roots;
 };
 #define T9_DATABASE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&t9_database__descriptor) \
     , 0,NULL, 0,NULL }
 
 
-/* TokenEdge methods */
-void   token_edge__init
-                     (TokenEdge         *message);
-size_t token_edge__get_packed_size
-                     (const TokenEdge   *message);
-size_t token_edge__pack
-                     (const TokenEdge   *message,
+/* StoredWord methods */
+void   stored_word__init
+                     (StoredWord         *message);
+size_t stored_word__get_packed_size
+                     (const StoredWord   *message);
+size_t stored_word__pack
+                     (const StoredWord   *message,
                       uint8_t             *out);
-size_t token_edge__pack_to_buffer
-                     (const TokenEdge   *message,
+size_t stored_word__pack_to_buffer
+                     (const StoredWord   *message,
                       ProtobufCBuffer     *buffer);
-TokenEdge *
-       token_edge__unpack
+StoredWord *
+       stored_word__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   token_edge__free_unpacked
-                     (TokenEdge *message,
+void   stored_word__free_unpacked
+                     (StoredWord *message,
                       ProtobufCAllocator *allocator);
-/* Token methods */
-void   token__init
-                     (Token         *message);
-size_t token__get_packed_size
-                     (const Token   *message);
-size_t token__pack
-                     (const Token   *message,
+/* StoredTokenEdge methods */
+void   stored_token_edge__init
+                     (StoredTokenEdge         *message);
+size_t stored_token_edge__get_packed_size
+                     (const StoredTokenEdge   *message);
+size_t stored_token_edge__pack
+                     (const StoredTokenEdge   *message,
                       uint8_t             *out);
-size_t token__pack_to_buffer
-                     (const Token   *message,
+size_t stored_token_edge__pack_to_buffer
+                     (const StoredTokenEdge   *message,
                       ProtobufCBuffer     *buffer);
-Token *
-       token__unpack
+StoredTokenEdge *
+       stored_token_edge__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   token__free_unpacked
-                     (Token *message,
+void   stored_token_edge__free_unpacked
+                     (StoredTokenEdge *message,
                       ProtobufCAllocator *allocator);
-/* TrieNode methods */
-void   trie_node__init
-                     (TrieNode         *message);
-size_t trie_node__get_packed_size
-                     (const TrieNode   *message);
-size_t trie_node__pack
-                     (const TrieNode   *message,
+/* StoredToken methods */
+void   stored_token__init
+                     (StoredToken         *message);
+size_t stored_token__get_packed_size
+                     (const StoredToken   *message);
+size_t stored_token__pack
+                     (const StoredToken   *message,
                       uint8_t             *out);
-size_t trie_node__pack_to_buffer
-                     (const TrieNode   *message,
+size_t stored_token__pack_to_buffer
+                     (const StoredToken   *message,
                       ProtobufCBuffer     *buffer);
-TrieNode *
-       trie_node__unpack
+StoredToken *
+       stored_token__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   trie_node__free_unpacked
-                     (TrieNode *message,
+void   stored_token__free_unpacked
+                     (StoredToken *message,
+                      ProtobufCAllocator *allocator);
+/* StoredTrieNode methods */
+void   stored_trie_node__init
+                     (StoredTrieNode         *message);
+size_t stored_trie_node__get_packed_size
+                     (const StoredTrieNode   *message);
+size_t stored_trie_node__pack
+                     (const StoredTrieNode   *message,
+                      uint8_t             *out);
+size_t stored_trie_node__pack_to_buffer
+                     (const StoredTrieNode   *message,
+                      ProtobufCBuffer     *buffer);
+StoredTrieNode *
+       stored_trie_node__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   stored_trie_node__free_unpacked
+                     (StoredTrieNode *message,
                       ProtobufCAllocator *allocator);
 /* T9Database methods */
 void   t9_database__init
@@ -162,14 +195,17 @@ void   t9_database__free_unpacked
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
-typedef void (*TokenEdge_Closure)
-                 (const TokenEdge *message,
+typedef void (*StoredWord_Closure)
+                 (const StoredWord *message,
                   void *closure_data);
-typedef void (*Token_Closure)
-                 (const Token *message,
+typedef void (*StoredTokenEdge_Closure)
+                 (const StoredTokenEdge *message,
                   void *closure_data);
-typedef void (*TrieNode_Closure)
-                 (const TrieNode *message,
+typedef void (*StoredToken_Closure)
+                 (const StoredToken *message,
+                  void *closure_data);
+typedef void (*StoredTrieNode_Closure)
+                 (const StoredTrieNode *message,
                   void *closure_data);
 typedef void (*T9Database_Closure)
                  (const T9Database *message,
@@ -180,9 +216,10 @@ typedef void (*T9Database_Closure)
 
 /* --- descriptors --- */
 
-extern const ProtobufCMessageDescriptor token_edge__descriptor;
-extern const ProtobufCMessageDescriptor token__descriptor;
-extern const ProtobufCMessageDescriptor trie_node__descriptor;
+extern const ProtobufCMessageDescriptor stored_word__descriptor;
+extern const ProtobufCMessageDescriptor stored_token_edge__descriptor;
+extern const ProtobufCMessageDescriptor stored_token__descriptor;
+extern const ProtobufCMessageDescriptor stored_trie_node__descriptor;
 extern const ProtobufCMessageDescriptor t9_database__descriptor;
 
 PROTOBUF_C__END_DECLS

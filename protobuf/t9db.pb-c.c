@@ -7,139 +7,184 @@
 #endif
 
 #include "t9db.pb-c.h"
-void   token_edge__init
-                     (TokenEdge         *message)
+void   stored_word__init
+                     (StoredWord         *message)
 {
-  static const TokenEdge init_value = TOKEN_EDGE__INIT;
+  static const StoredWord init_value = STORED_WORD__INIT;
   *message = init_value;
 }
-size_t token_edge__get_packed_size
-                     (const TokenEdge *message)
+size_t stored_word__get_packed_size
+                     (const StoredWord *message)
 {
-  assert(message->base.descriptor == &token_edge__descriptor);
+  assert(message->base.descriptor == &stored_word__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t token_edge__pack
-                     (const TokenEdge *message,
+size_t stored_word__pack
+                     (const StoredWord *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &token_edge__descriptor);
+  assert(message->base.descriptor == &stored_word__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t token_edge__pack_to_buffer
-                     (const TokenEdge *message,
+size_t stored_word__pack_to_buffer
+                     (const StoredWord *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &token_edge__descriptor);
+  assert(message->base.descriptor == &stored_word__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-TokenEdge *
-       token_edge__unpack
+StoredWord *
+       stored_word__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (TokenEdge *)
-     protobuf_c_message_unpack (&token_edge__descriptor,
+  return (StoredWord *)
+     protobuf_c_message_unpack (&stored_word__descriptor,
                                 allocator, len, data);
 }
-void   token_edge__free_unpacked
-                     (TokenEdge *message,
+void   stored_word__free_unpacked
+                     (StoredWord *message,
                       ProtobufCAllocator *allocator)
 {
   if(!message)
     return;
-  assert(message->base.descriptor == &token_edge__descriptor);
+  assert(message->base.descriptor == &stored_word__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   token__init
-                     (Token         *message)
+void   stored_token_edge__init
+                     (StoredTokenEdge         *message)
 {
-  static const Token init_value = TOKEN__INIT;
+  static const StoredTokenEdge init_value = STORED_TOKEN_EDGE__INIT;
   *message = init_value;
 }
-size_t token__get_packed_size
-                     (const Token *message)
+size_t stored_token_edge__get_packed_size
+                     (const StoredTokenEdge *message)
 {
-  assert(message->base.descriptor == &token__descriptor);
+  assert(message->base.descriptor == &stored_token_edge__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t token__pack
-                     (const Token *message,
+size_t stored_token_edge__pack
+                     (const StoredTokenEdge *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &token__descriptor);
+  assert(message->base.descriptor == &stored_token_edge__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t token__pack_to_buffer
-                     (const Token *message,
+size_t stored_token_edge__pack_to_buffer
+                     (const StoredTokenEdge *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &token__descriptor);
+  assert(message->base.descriptor == &stored_token_edge__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Token *
-       token__unpack
+StoredTokenEdge *
+       stored_token_edge__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Token *)
-     protobuf_c_message_unpack (&token__descriptor,
+  return (StoredTokenEdge *)
+     protobuf_c_message_unpack (&stored_token_edge__descriptor,
                                 allocator, len, data);
 }
-void   token__free_unpacked
-                     (Token *message,
+void   stored_token_edge__free_unpacked
+                     (StoredTokenEdge *message,
                       ProtobufCAllocator *allocator)
 {
   if(!message)
     return;
-  assert(message->base.descriptor == &token__descriptor);
+  assert(message->base.descriptor == &stored_token_edge__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   trie_node__init
-                     (TrieNode         *message)
+void   stored_token__init
+                     (StoredToken         *message)
 {
-  static const TrieNode init_value = TRIE_NODE__INIT;
+  static const StoredToken init_value = STORED_TOKEN__INIT;
   *message = init_value;
 }
-size_t trie_node__get_packed_size
-                     (const TrieNode *message)
+size_t stored_token__get_packed_size
+                     (const StoredToken *message)
 {
-  assert(message->base.descriptor == &trie_node__descriptor);
+  assert(message->base.descriptor == &stored_token__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t trie_node__pack
-                     (const TrieNode *message,
+size_t stored_token__pack
+                     (const StoredToken *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &trie_node__descriptor);
+  assert(message->base.descriptor == &stored_token__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t trie_node__pack_to_buffer
-                     (const TrieNode *message,
+size_t stored_token__pack_to_buffer
+                     (const StoredToken *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &trie_node__descriptor);
+  assert(message->base.descriptor == &stored_token__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-TrieNode *
-       trie_node__unpack
+StoredToken *
+       stored_token__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (TrieNode *)
-     protobuf_c_message_unpack (&trie_node__descriptor,
+  return (StoredToken *)
+     protobuf_c_message_unpack (&stored_token__descriptor,
                                 allocator, len, data);
 }
-void   trie_node__free_unpacked
-                     (TrieNode *message,
+void   stored_token__free_unpacked
+                     (StoredToken *message,
                       ProtobufCAllocator *allocator)
 {
   if(!message)
     return;
-  assert(message->base.descriptor == &trie_node__descriptor);
+  assert(message->base.descriptor == &stored_token__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   stored_trie_node__init
+                     (StoredTrieNode         *message)
+{
+  static const StoredTrieNode init_value = STORED_TRIE_NODE__INIT;
+  *message = init_value;
+}
+size_t stored_trie_node__get_packed_size
+                     (const StoredTrieNode *message)
+{
+  assert(message->base.descriptor == &stored_trie_node__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t stored_trie_node__pack
+                     (const StoredTrieNode *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &stored_trie_node__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t stored_trie_node__pack_to_buffer
+                     (const StoredTrieNode *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &stored_trie_node__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+StoredTrieNode *
+       stored_trie_node__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (StoredTrieNode *)
+     protobuf_c_message_unpack (&stored_trie_node__descriptor,
+                                allocator, len, data);
+}
+void   stored_trie_node__free_unpacked
+                     (StoredTrieNode *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &stored_trie_node__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 void   t9_database__init
@@ -187,7 +232,58 @@ void   t9_database__free_unpacked
   assert(message->base.descriptor == &t9_database__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-static const ProtobufCFieldDescriptor token_edge__field_descriptors[2] =
+static const ProtobufCFieldDescriptor stored_word__field_descriptors[2] =
+{
+  {
+    "word",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(StoredWord, word),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "freq",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(StoredWord, freq),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned stored_word__field_indices_by_name[] = {
+  1,   /* field[1] = freq */
+  0,   /* field[0] = word */
+};
+static const ProtobufCIntRange stored_word__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor stored_word__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "StoredWord",
+  "StoredWord",
+  "StoredWord",
+  "",
+  sizeof(StoredWord),
+  2,
+  stored_word__field_descriptors,
+  stored_word__field_indices_by_name,
+  1,  stored_word__number_ranges,
+  (ProtobufCMessageInit) stored_word__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor stored_token_edge__field_descriptors[2] =
 {
   {
     "target_id",
@@ -195,7 +291,7 @@ static const ProtobufCFieldDescriptor token_edge__field_descriptors[2] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
-    offsetof(TokenEdge, target_id),
+    offsetof(StoredTokenEdge, target_id),
     NULL,
     NULL,
     0,             /* flags */
@@ -207,38 +303,38 @@ static const ProtobufCFieldDescriptor token_edge__field_descriptors[2] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(TokenEdge, freq),
+    offsetof(StoredTokenEdge, freq),
     NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
-static const unsigned token_edge__field_indices_by_name[] = {
+static const unsigned stored_token_edge__field_indices_by_name[] = {
   1,   /* field[1] = freq */
   0,   /* field[0] = target_id */
 };
-static const ProtobufCIntRange token_edge__number_ranges[1 + 1] =
+static const ProtobufCIntRange stored_token_edge__number_ranges[1 + 1] =
 {
   { 1, 0 },
   { 0, 2 }
 };
-const ProtobufCMessageDescriptor token_edge__descriptor =
+const ProtobufCMessageDescriptor stored_token_edge__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "TokenEdge",
-  "TokenEdge",
-  "TokenEdge",
+  "StoredTokenEdge",
+  "StoredTokenEdge",
+  "StoredTokenEdge",
   "",
-  sizeof(TokenEdge),
+  sizeof(StoredTokenEdge),
   2,
-  token_edge__field_descriptors,
-  token_edge__field_indices_by_name,
-  1,  token_edge__number_ranges,
-  (ProtobufCMessageInit) token_edge__init,
+  stored_token_edge__field_descriptors,
+  stored_token_edge__field_indices_by_name,
+  1,  stored_token_edge__number_ranges,
+  (ProtobufCMessageInit) stored_token_edge__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor token__field_descriptors[4] =
+static const ProtobufCFieldDescriptor stored_token__field_descriptors[4] =
 {
   {
     "id",
@@ -246,7 +342,7 @@ static const ProtobufCFieldDescriptor token__field_descriptors[4] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
-    offsetof(Token, id),
+    offsetof(StoredToken, id),
     NULL,
     NULL,
     0,             /* flags */
@@ -258,7 +354,7 @@ static const ProtobufCFieldDescriptor token__field_descriptors[4] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(Token, freq),
+    offsetof(StoredToken, freq),
     NULL,
     NULL,
     0,             /* flags */
@@ -270,7 +366,7 @@ static const ProtobufCFieldDescriptor token__field_descriptors[4] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Token, value),
+    offsetof(StoredToken, value),
     NULL,
     NULL,
     0,             /* flags */
@@ -281,49 +377,49 @@ static const ProtobufCFieldDescriptor token__field_descriptors[4] =
     4,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_MESSAGE,
-    offsetof(Token, n_edges),
-    offsetof(Token, edges),
-    &token_edge__descriptor,
+    offsetof(StoredToken, n_edges),
+    offsetof(StoredToken, edges),
+    &stored_token_edge__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
-static const unsigned token__field_indices_by_name[] = {
+static const unsigned stored_token__field_indices_by_name[] = {
   3,   /* field[3] = edges */
   1,   /* field[1] = freq */
   0,   /* field[0] = id */
   2,   /* field[2] = value */
 };
-static const ProtobufCIntRange token__number_ranges[1 + 1] =
+static const ProtobufCIntRange stored_token__number_ranges[1 + 1] =
 {
   { 1, 0 },
   { 0, 4 }
 };
-const ProtobufCMessageDescriptor token__descriptor =
+const ProtobufCMessageDescriptor stored_token__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "Token",
-  "Token",
-  "Token",
+  "StoredToken",
+  "StoredToken",
+  "StoredToken",
   "",
-  sizeof(Token),
+  sizeof(StoredToken),
   4,
-  token__field_descriptors,
-  token__field_indices_by_name,
-  1,  token__number_ranges,
-  (ProtobufCMessageInit) token__init,
+  stored_token__field_descriptors,
+  stored_token__field_indices_by_name,
+  1,  stored_token__number_ranges,
+  (ProtobufCMessageInit) stored_token__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor trie_node__field_descriptors[5] =
+static const ProtobufCFieldDescriptor stored_trie_node__field_descriptors[6] =
 {
   {
     "node_index",
     1,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
-    offsetof(TrieNode, has_node_index),
-    offsetof(TrieNode, node_index),
+    offsetof(StoredTrieNode, has_node_index),
+    offsetof(StoredTrieNode, node_index),
     NULL,
     NULL,
     0,             /* flags */
@@ -335,7 +431,7 @@ static const ProtobufCFieldDescriptor trie_node__field_descriptors[5] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(TrieNode, character),
+    offsetof(StoredTrieNode, character),
     NULL,
     NULL,
     0,             /* flags */
@@ -347,7 +443,7 @@ static const ProtobufCFieldDescriptor trie_node__field_descriptors[5] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(TrieNode, freq),
+    offsetof(StoredTrieNode, freq),
     NULL,
     NULL,
     0,             /* flags */
@@ -358,8 +454,8 @@ static const ProtobufCFieldDescriptor trie_node__field_descriptors[5] =
     4,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_INT32,
-    offsetof(TrieNode, n_tokens),
-    offsetof(TrieNode, tokens),
+    offsetof(StoredTrieNode, n_tokens),
+    offsetof(StoredTrieNode, tokens),
     NULL,
     NULL,
     0,             /* flags */
@@ -370,39 +466,52 @@ static const ProtobufCFieldDescriptor trie_node__field_descriptors[5] =
     5,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_UINT32,
-    offsetof(TrieNode, n_children),
-    offsetof(TrieNode, children),
+    offsetof(StoredTrieNode, n_children),
+    offsetof(StoredTrieNode, children),
     NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "words",
+    6,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(StoredTrieNode, n_words),
+    offsetof(StoredTrieNode, words),
+    &stored_word__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
-static const unsigned trie_node__field_indices_by_name[] = {
+static const unsigned stored_trie_node__field_indices_by_name[] = {
   1,   /* field[1] = character */
   4,   /* field[4] = children */
   2,   /* field[2] = freq */
   0,   /* field[0] = node_index */
   3,   /* field[3] = tokens */
+  5,   /* field[5] = words */
 };
-static const ProtobufCIntRange trie_node__number_ranges[1 + 1] =
+static const ProtobufCIntRange stored_trie_node__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 5 }
+  { 0, 6 }
 };
-const ProtobufCMessageDescriptor trie_node__descriptor =
+const ProtobufCMessageDescriptor stored_trie_node__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "TrieNode",
-  "TrieNode",
-  "TrieNode",
+  "StoredTrieNode",
+  "StoredTrieNode",
+  "StoredTrieNode",
   "",
-  sizeof(TrieNode),
-  5,
-  trie_node__field_descriptors,
-  trie_node__field_indices_by_name,
-  1,  trie_node__number_ranges,
-  (ProtobufCMessageInit) trie_node__init,
+  sizeof(StoredTrieNode),
+  6,
+  stored_trie_node__field_descriptors,
+  stored_trie_node__field_indices_by_name,
+  1,  stored_trie_node__number_ranges,
+  (ProtobufCMessageInit) stored_trie_node__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor t9_database__field_descriptors[2] =
@@ -414,7 +523,7 @@ static const ProtobufCFieldDescriptor t9_database__field_descriptors[2] =
     PROTOBUF_C_TYPE_MESSAGE,
     offsetof(T9Database, n_tokens),
     offsetof(T9Database, tokens),
-    &token__descriptor,
+    &stored_token__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
@@ -426,7 +535,7 @@ static const ProtobufCFieldDescriptor t9_database__field_descriptors[2] =
     PROTOBUF_C_TYPE_MESSAGE,
     offsetof(T9Database, n_roots),
     offsetof(T9Database, roots),
-    &trie_node__descriptor,
+    &stored_trie_node__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */

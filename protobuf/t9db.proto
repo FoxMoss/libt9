@@ -1,26 +1,32 @@
 syntax = "proto2";
 
-message TokenEdge {
+message StoredWord {
+  required string word = 1;
+  required uint32 freq = 2;
+}
+
+message StoredTokenEdge {
   required int32 target_id = 1;
   required uint32 freq = 2;
 }
 
-message Token {
+message StoredToken {
   required int32 id = 1;
   required uint32 freq = 2;
   required string value = 3;
-  repeated TokenEdge edges = 4;
+  repeated StoredTokenEdge edges = 4;
 }
 
-message TrieNode {
+message StoredTrieNode {
   optional uint32 node_index = 1;
   required uint32 character = 2; // ascii but a single byte wasnt possible
   required uint32 freq = 3;
   repeated int32 tokens = 4;
   repeated uint32 children = 5;
+  repeated StoredWord words = 6;
 }
 
 message T9Database {
-  repeated Token tokens = 1;
-  repeated TrieNode roots = 2;
+  repeated StoredToken tokens = 1;
+  repeated StoredTrieNode roots = 2;
 }

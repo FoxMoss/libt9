@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // bool open_layers[128] = {};
 //
@@ -219,24 +220,24 @@
 //   }
 // }
 //
-size_t high_score = 0;
-int32_t *high_array;
+size_t high_score = 100;
 
 void recurse_trie(int32_t *current_buffer, size_t current_buffer_len,
                   int32_t appened_token, char *char_ptr, size_t score_count,
                   Cache *cache) {
-  TrieNode *last_node = NULL;
-  TrieNode *current_node = NULL;
-  // TODO: free current_node
+  StoredTrieNode *last_node = NULL;
+  StoredTrieNode *current_node = NULL;
+  bool last_node_allocd = false;
+  bool current_node_allocd = false;
   size_t score_count_copy = score_count;
   int32_t *current_buffer_copy = current_buffer;
   if (appened_token != -1) {
-    Token *canidate_token = cache_find_token(appened_token, cache);
+    StoredToken *canidate_token = cache_find_token(appened_token, cache);
     if (current_buffer_len > 1 &&
         strncmp(canidate_token->value, "▁", strlen("▁")) == 0  ) 
       return;
 
-    current_buffer_copy = malloc(current_buffer_len);
+    current_buffer_copy = malloc(current_buffer_len * sizeof(int32_t));
     for (size_t i = 0; i < current_buffer_len - 1; i++) {
       current_buffer_copy[i] = current_buffer[i];
     }
@@ -247,7 +248,7 @@ void recurse_trie(int32_t *current_buffer, size_t current_buffer_len,
       exit(1);
     }
     if (current_buffer_len >= 2) {
-      Token *parent_token =
+      StoredToken *parent_token =
           cache_find_token(current_buffer_copy[current_buffer_len - 2], cache);
       for (size_t i = 0; i < parent_token->n_edges; i++) {
         if (parent_token->edges[i]->target_id == appened_token) {
@@ -258,6 +259,10 @@ void recurse_trie(int32_t *current_buffer, size_t current_buffer_len,
     }
 
     score_count_copy += canidate_token->freq;
+  } else {
+    current_buffer_copy = malloc(current_buffer_len * sizeof(int32_t));
+    memcpy(current_buffer_copy, current_buffer,
+           current_buffer_len * sizeof(int32_t));
   }
   bool ran_cycle = false;
   while (*char_ptr != 0) {
@@ -271,21 +276,25 @@ void recurse_trie(int32_t *current_buffer, size_t current_buffer_len,
       }
     } else {
       for (size_t i = 0; i < last_node->n_children; i++) {
-        TrieNode *canidate_node = cache_get_trie(last_node->children[i], cache);
+        StoredTrieNode *canidate_node =
+            cache_get_trie(last_node->children[i], cache);
         if (canidate_node->character == *char_ptr) {
           current_node = canidate_node;
+          current_node_allocd = true;
           break;
+        } else {
+          stored_trie_node__free_unpacked(canidate_node, NULL);
         }
       }
     }
     if (current_node == NULL) {
-      printf("res failed to get tokens\n");
-      return;
+      break;
     }
 
+    bool found_with_chain = false;
     for (size_t i = 0; i < current_node->n_tokens; i++) {
       if (appened_token != -1) {
-        Token *token_chunk = cache_find_token(appened_token, cache);
+        StoredToken *token_chunk = cache_find_token(appened_token, cache);
         bool in_prev = false;
         for (size_t prev_i = 0; prev_i < token_chunk->n_edges; prev_i++) {
           if (token_chunk->edges[prev_i]->target_id ==
@@ -295,9 +304,10 @@ void recurse_trie(int32_t *current_buffer, size_t current_buffer_len,
           }
         }
         if (!in_prev) {
-          break;
+          continue;
         }
       }
+      found_with_chain = true;
       recurse_trie(current_buffer_copy, current_buffer_len + 1,
                    current_node->tokens[i], char_ptr + 1, score_count_copy,
                    cache);
@@ -305,30 +315,50 @@ void recurse_trie(int32_t *current_buffer, size_t current_buffer_len,
 
     score_count_copy += current_node->freq;
     char_ptr++;
+    if (last_node_allocd) {
+      stored_trie_node__free_unpacked(last_node, NULL);
+    }
     last_node = current_node;
+    last_node_allocd = current_node_allocd;
+    current_node_allocd = false;
     current_node = NULL;
   }
 
-  if (high_score < score_count &&
-      !ran_cycle) { // code only runs a cycle if not in an end token state
+  if (current_node_allocd)
+    stored_trie_node__free_unpacked(current_node, NULL);
+  if (last_node_allocd)
+    stored_trie_node__free_unpacked(last_node, NULL);
+
+  if (!ran_cycle &&
+      high_score >= current_buffer_len) { // code only runs a cycle if not in an
+                                          // end token state
     for (size_t i = 0; i < current_buffer_len; i++) {
-      Token *token_chunk = cache_find_token(current_buffer_copy[i], cache);
+      StoredToken *token_chunk =
+          cache_find_token(current_buffer_copy[i], cache);
 
       printf("[%s]", token_chunk->value);
     }
-    printf(": %zu\n", score_count / current_buffer_len);
+    printf(": %zu %zu\n", current_buffer_len, score_count);
+    high_score = current_buffer_len;
   }
   free(current_buffer_copy);
 }
 
 int main(int argc, char *argv[]) {
   Cache cache = init_cache("inmemory.t9db", "streamed.t9stream");
-  char *target_num = "528474";
+  char *target_num = "542";
   size_t target_num_len = strlen(target_num);
 
-  recurse_trie(NULL, 0, -1, target_num, 0, &cache);
+  StoredTrieNode *node = cache_simple_search(target_num, &cache);
 
-  free_cache(cache);
+  // if (node->n_words == 0) {
+  //   recurse_trie(NULL, 0, -1, target_num, 0, &cache);
+  // } else {
+  //   for (size_t i = 0; i < node->n_words; i++) {
+  //     printf("%s : %i\n", node->words[i]->word, node->words[i]->freq);
+  //   }
+  // }
+  stored_trie_node__free_unpacked(node, NULL);
 
   // root = trie_load_wordlist();
   // read_config("/tmp/.t9");
@@ -364,14 +394,13 @@ int main(int argc, char *argv[]) {
   //
   //   wclear(tree);
   //
-  //   struct TrieNode *path = trie_fillout_path(root, current_word_buffer);
-  //   size_t max_lines = max_y - 5;
-  //   size_t line = 0;
-  //   size_t start_line_copy = start_line;
-  //   wmove(tree, 1, 2);
+  //   struct TrieNode *path = trie_fillout_path(root,
+  //   current_word_buffer); size_t max_lines = max_y - 5; size_t line =
+  //   0; size_t start_line_copy = start_line; wmove(tree, 1, 2);
   //
   //   if (!settings) {
-  //     dump_tree(tree, path, 0, &max_lines, &line, &start_line_copy, y - 3);
+  //     dump_tree(tree, path, 0, &max_lines, &line, &start_line_copy, y -
+  //     3);
   //   } else {
   //     wprintw(tree, "tree hidden...");
   //   }
@@ -568,4 +597,5 @@ int main(int argc, char *argv[]) {
   // }
   //
   // endwin();
+  free_cache(cache);
 }

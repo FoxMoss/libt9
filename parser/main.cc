@@ -9,6 +9,7 @@
 #include <google/protobuf/message_lite.h>
 #include <optional>
 #include <sentencepiece_processor.h>
+#include <stddef.h>
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
@@ -85,7 +86,7 @@ bool is_letter(char c) {
     return true;
   if (c >= 'A' && c <= 'Z')
     return true;
-  if (c == ' ')
+  if (c == '\'')
     return true;
   return false;
 }
@@ -96,10 +97,16 @@ struct MarkovNode {
   std::unordered_map<int, uint32_t> children;
 };
 
-struct RawTrieNode {
+struct RawStoredWord {
+  std::string word;
+  uint32_t freq;
+};
+
+struct RawStoredTrieNode {
   char path;
-  std::vector<RawTrieNode *> children; // auto frees?
+  std::vector<RawStoredTrieNode *> children; // auto frees?
   std::vector<int> tokens;
+  std::vector<RawStoredWord> words;
   uint32_t freq;
   uint32_t index;
 };
@@ -107,7 +114,7 @@ struct RawTrieNode {
 std::unordered_map<int, MarkovNode> tokens;
 static uint32_t global_index = 0;
 
-void write_trie(std::ofstream *stream, TrieNode *node) {
+void write_trie(std::ofstream *stream, StoredTrieNode *node) {
   std::string serialized = node->SerializeAsString();
   uint32_t serialized_len = serialized.size();
   stream->write((char *)&serialized_len,
@@ -115,13 +122,13 @@ void write_trie(std::ofstream *stream, TrieNode *node) {
   stream->write(serialized.c_str(), serialized.size());
 }
 
-void recurse_trie(RawTrieNode *node, T9Database *db,
+void recurse_trie(RawStoredTrieNode *node, T9Database *db,
                   std::ofstream *streamed_file) {
   for (auto child : node->children) {
     recurse_trie(child, db, streamed_file);
   }
   node->index = global_index++;
-  auto trie_node = TrieNode();
+  auto trie_node = StoredTrieNode();
   trie_node.set_node_index(node->index);
   trie_node.set_character(node->path);
   trie_node.set_freq(node->freq);
@@ -132,16 +139,24 @@ void recurse_trie(RawTrieNode *node, T9Database *db,
   for (auto token : node->tokens) {
     trie_node.add_tokens(token);
   }
+  for (auto word : node->words) {
+    auto trie_word = trie_node.add_words();
+    printf("%s\n", word.word.c_str());
+
+    trie_word->set_word(word.word);
+    trie_word->set_freq(word.freq);
+  }
+
   write_trie(streamed_file, &trie_node);
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 5) {
-    printf("Usage: %s [model] [infile] [inmemoryfile] [streamedfile]\n",
-           "t9parser");
+  if (argc != 6) {
+    printf(
+        "Usage: %s [model] [infile1] [infile2] [inmemoryfile] [streamedfile]\n",
+        "t9parser");
     return 1;
   }
-  std::ifstream read_stream(argv[2]);
   sentencepiece::SentencePieceProcessor processor;
   const auto status = processor.Load(std::string_view(argv[1]));
   processor.SetEncodeExtraOptions("bos:eos"); // add <s> and </s>.
@@ -150,28 +165,30 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  std::ifstream read_stream(argv[2]);
   std::vector<std::string> lines;
-  std::string tweet_context;
-  while (std::getline(read_stream, tweet_context)) {
-    // if (lines.size() > 100)
-    //   break;
-
-    uint32_t comma_count = 0;
-    std::string tweet;
-    for (auto c : tweet_context) {
-      // 6 commas before  what we want
-      if (comma_count >= 6 && is_letter(c))
-        tweet.push_back(c);
-      if (c == '.' && tweet != "") {
-        lines.push_back(tweet);
-        tweet = "";
-      }
-      if (c == ',')
-        comma_count++;
-    }
-    lines.push_back(tweet);
+  std::string line;
+  while (std::getline(read_stream, line)) {
+    lines.push_back(line);
   }
+  std::ifstream read_stream2(argv[3]);
+  while (std::getline(read_stream2, line)) {
+    lines.push_back(line);
+  }
+
+  std::unordered_map<std::string, size_t> words;
   for (uint32_t a_i = 0; a_i < lines.size(); a_i++) {
+    std::string word;
+    for (auto c : lines[a_i]) {
+      if (!is_letter(c) && word != "") {
+        printf("%s\n", word.c_str());
+        words[word]++;
+        word = "";
+      }
+
+      if (is_letter(c))
+        word.push_back(c);
+    }
     std::vector<std::string> pieces;
     std::vector<int> ids;
     processor.Encode(lines[a_i], &pieces);
@@ -179,7 +196,6 @@ int main(int argc, char *argv[]) {
     for (uint32_t token_i = 0; token_i < ids.size(); token_i++) {
       if (tokens.find(ids[token_i]) == tokens.end()) {
         tokens[ids[token_i]] = {pieces[token_i], 1, {}};
-        printf("%s\n", pieces[token_i].c_str());
       }
       tokens[ids[token_i]].freq++;
     }
@@ -213,13 +229,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::unordered_map<char, RawTrieNode *> roots;
+  std::unordered_map<char, RawStoredTrieNode *> roots;
   sentencepiece::ModelProto model = processor.model_proto();
 
   for (int id = 0; id < model.pieces_size(); ++id) { // i is id
     const auto &sp = model.pieces(id);
-    RawTrieNode *last_node = NULL;
-    printf("%i\n", id);
+    RawStoredTrieNode *last_node = NULL;
     if (tokens.find(id) == tokens.end()) {
       tokens[id] = {sp.piece(), 0, {}};
     }
@@ -229,24 +244,20 @@ int main(int argc, char *argv[]) {
       if (t9 == '\0') {
         continue;
       }
-      RawTrieNode *curent_node;
+      RawStoredTrieNode *curent_node;
       if (last_node == NULL) {
         if (roots.find(t9) == roots.end()) {
-          roots[t9] = new RawTrieNode{t9, {}, {}, 1};
+          roots[t9] = new RawStoredTrieNode{t9, {}, {}, {}, 1};
         }
         curent_node = roots[t9];
       } else {
-        printf("looking node %c\n", t9);
         for (auto child : last_node->children) {
-          printf("curent children %c\n", child->path);
           if (child->path == t9) {
-            printf("found\n");
             curent_node = child;
             goto skip_creation;
           }
         }
-        printf("child created %c\n", t9);
-        curent_node = new RawTrieNode{t9, {}, {}, 1};
+        curent_node = new RawStoredTrieNode{t9, {}, {}, {}, 1};
         last_node->children.push_back(curent_node);
       }
     skip_creation:
@@ -256,6 +267,43 @@ int main(int argc, char *argv[]) {
     }
     if (last_node != NULL) {
       last_node->tokens.push_back(id);
+    }
+  }
+
+  for (auto word_pair : words) {
+    RawStoredTrieNode *last_node = NULL;
+    for (char c : word_pair.first) {
+      printf("%c\n", c);
+      char t9 = char_to_t9(c);
+      if (t9 == '\0') {
+        continue;
+      }
+      RawStoredTrieNode *curent_node;
+      if (last_node == NULL) {
+        if (roots.find(t9) == roots.end()) {
+          roots[t9] = new RawStoredTrieNode{t9, {}, {}, {}, 1};
+        }
+        curent_node = roots[t9];
+      } else {
+        for (auto child : last_node->children) {
+          if (child->path == t9) {
+            curent_node = child;
+            goto skip_creation_word;
+          }
+        }
+        printf("child created %c\n", t9);
+        curent_node = new RawStoredTrieNode{t9, {}, {}, {}, 1};
+        last_node->children.push_back(curent_node);
+      }
+    skip_creation_word:
+
+      curent_node->freq++;
+      last_node = curent_node;
+    }
+    if (last_node != NULL) {
+      last_node->words.push_back(
+          {word_pair.first, static_cast<uint32_t>(word_pair.second)});
+      printf("boped %s\n", word_pair.first.c_str());
     }
   }
 
@@ -272,7 +320,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::ofstream trie_stream(argv[4], std::ios::binary);
+  std::ofstream trie_stream(argv[5], std::ios::binary);
 
   for (auto root : roots) {
     for (auto child : root.second->children) {
@@ -288,9 +336,14 @@ int main(int argc, char *argv[]) {
     for (auto token : root.second->tokens) {
       trie_node->add_tokens(token);
     }
+    for (auto word : root.second->words) {
+      auto trie_word = trie_node->add_words();
+      trie_word->set_word(word.word);
+      trie_word->set_freq(word.freq);
+    }
   }
 
-  std::ofstream output(argv[3], std::ios::binary);
+  std::ofstream output(argv[4], std::ios::binary);
   google::protobuf::io::OstreamOutputStream output_stream(&output);
   google::protobuf::io::CodedOutputStream coded_output(&output_stream);
   db.SerializeToCodedStream(&coded_output);
